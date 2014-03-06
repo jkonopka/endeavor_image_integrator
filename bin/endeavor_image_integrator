@@ -1,0 +1,72 @@
+#!/usr/bin/env ruby
+
+require_relative '../config/environment'
+
+require_relative '../lib/endeavor_image_integrator/server'
+
+Thread.abort_on_exception = false
+
+Main do
+
+  description 'endeavor_image_integrator'
+  examples <<-end
+endeavor_image_integrator start --daemon -p /tmp/example.pid
+endeavor_image_integrator stop
+endeavor_image_integrator status
+end
+
+  option('--pidfile=path', '-p') do
+    description 'Path to PID file.'
+    default '/var/run/example.pid'
+  end
+
+  mode 'start' do
+    option('--daemon', '-d') do
+      description 'Run as a daemon.'
+    end
+
+    def run
+      d = daemon(params['pidfile'].value)
+      if params['daemon'].value
+        d.startup
+      else
+        d.server.startup
+      end
+    end
+  end
+
+  mode 'stop' do
+    def run
+      daemon(params['pidfile'].value).shutdown
+    end
+  end
+
+  mode 'status' do
+    def run
+      d = daemon(params['pidfile'].value)
+      puts "#{d.name} is #{d.alive? ? 'running' : 'stopped'}"
+      exit d.alive? ? 0 : 1
+    end
+  end
+
+  mode 'kill' do
+    def run
+      daemon(params['pidfile'].value).kill
+    end
+  end
+
+  def daemon(pidfile, options = {})
+    return Servolux::Daemon.new(
+      server: EndeavorImageIntegratorServer.new(
+        pid_file: pidfile,
+        logger: LOGGER
+      ),
+      nochdir: true
+    )
+  end
+
+  def run
+    help!
+  end
+
+end
