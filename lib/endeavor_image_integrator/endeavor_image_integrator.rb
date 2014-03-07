@@ -2,14 +2,21 @@ module EndeavorImageIntegrator
   class Worker
     @running = true
     def self.start(options = {})
-      LOGGER.info "Starting EndeavorImageIntegrator Worker with options:#{options.inspect}"
-      @pebblebed = ::Pebblebed::Connector.new(GROVEKEY, {})
+      LOGGER.info "Starting EndeavorImageIntegrator Worker"
+
+      options.merge! default_options
+      options.merge! load_config_file
+
+      min_keys = %w(grovekey)
+      stop "missing grovekey - can't start" unless min_keys.map { |i| options.has_key? i.to_sym }.all?
+      @options = options
+
+      @pebblebed = ::Pebblebed::Connector.new(options[:grovekey], {})
       @grove = @pebblebed.grove
 
-      @options = parse_options(options)
       @river = Pebblebed::River.new()
       @river.connect
-      @q = @river.queue({:name => TOOTSIE_DONE_QUEUE, :event => "tootsie_done"})
+      @q = @river.queue({:name => options[:queue], :event => "tootsie_done"})
 
       process_event unless options[:all]
       if(options[:all])
@@ -19,22 +26,28 @@ module EndeavorImageIntegrator
       end
     end
 
-    def self.stop
-      LOGGER.info "Stopping EndeavorImageIntegrator Worker"
+    def self.stop(message = "")
+      LOGGER.info "Stopping EndeavorImageIntegrator Worker #{message}"
       @running = false
-    end
-
-    def self.parse_options(options)
-      default_options.merge(options)
     end
 
     def self.default_options
       {
-        :quiet => false,
-        :abort_on_503 => false
+        :queue => "tootsie_completion",
+        :quiet => true
       }
     end
 
+    def self.load_config_file
+      config_file = File.expand_path('./config/config.yml') if File.exists?('./config/config.yml')
+
+      confighash = YAML.load(
+        ERB.new(
+          File.read(config_file)).result
+        ) unless config_file.nil?
+
+      confighash || {}
+    end
     def self.process_event
       begin
         @q.pop({:ack => true, :auto_ack => false}) do |delivery_info|

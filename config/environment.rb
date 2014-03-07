@@ -13,9 +13,11 @@ require 'pebblebed'
 require 'active_support/core_ext'
 Bundler.require(:default, ENVIRONMENT)
 
-
-require File.expand_path('config/grove.rb') if File.exists?('config/grove.rb')
-require File.expand_path('config/pebblebed.rb') if File.exists?('config/pebblebed.rb')
+Pebblebed.config do
+  host 'homesdotcom.dev'
+  service :checkpoint
+  service :grove
+end
 
 Dir.glob(File.expand_path('../../lib/endeavor_image_integrator/**/*.rb', __FILE__)).each do |file_name|
   require file_name

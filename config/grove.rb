@@ -1,3 +1,0 @@
-GROVEKEY = 'l8cm688nscij7tue26k9j8owuiz552ukm1ulc31yfd30oe5sq4as21dvtqvv0thvbiruwb06vnhpzdgna6vgqof3cwoi9fi1deh'
-
-TOOTSIE_DONE_QUEUE = "tootsie_completion"
