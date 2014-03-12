@@ -1,0 +1,8 @@
+# Grove session key
+:grovekey: stuff
+
+# Optional, defaults to tootsie_completion
+:queue: tootsie_completion
+
+# Quiet mode, defaults to true
+:quiet: true
