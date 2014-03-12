@@ -74,6 +74,8 @@ module EndeavorImageIntegrator
               result = @grove.post("/posts/post.listing:#{message["reference"]["grovepath"]}", {post: repost})
               @q.ack(:delivery_tag => delivery_info[:delivery_details][:delivery_tag])
             end
+          else
+            sleep(5)
           end
         end
       rescue Pebblebed::HttpError => e
