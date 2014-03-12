@@ -7,16 +7,16 @@ module EndeavorImageIntegrator
       options.merge! default_options
       options.merge! load_config_file
 
-      min_keys = %w(grovekey)
-      stop "missing grovekey - can't start" unless min_keys.map { |i| options.has_key? i.to_sym }.all?
+      min_keys = %w(session_key)
+      stop "missing session_key - can't start" unless min_keys.map { |i| options.has_key? i.to_sym }.all?
       @options = options
 
-      @pebblebed = ::Pebblebed::Connector.new(options[:grovekey], {})
+      @pebblebed = ::Pebblebed::Connector.new(options[:session_key], {})
       @grove = @pebblebed.grove
 
       @river = Pebblebed::River.new()
       @river.connect
-      @q = @river.queue({:name => options[:queue], :event => "tootsie_done"})
+      @q = @river.queue({:name => options[:queue], :event => "tootsie_completed"})
 
       process_event unless options[:all]
       if(options[:all])
@@ -52,8 +52,7 @@ module EndeavorImageIntegrator
       begin
         @q.pop({:ack => true, :auto_ack => false}) do |delivery_info|
           if delivery_info[:payload] != :queue_empty
-            payload = JSON.parse(delivery_info[:payload])
-            message = JSON.parse(payload["data"]["message"])
+            message = JSON.parse(delivery_info[:payload])
             if message["reference"]
               listing = @grove.get("/posts/post.listing:#{message["reference"]["grovepath"]}", { external_id: "#{message["reference"]["external_id"]}", unpublished: "include"})
               repost = {
@@ -62,6 +61,7 @@ module EndeavorImageIntegrator
                 :tags => listing[:post][:tags].to_a
               }
               repost[:tags] -= ["needs_tootsie"]
+              repost[:external_document] = repost[:external_document].unwrap  # Work around DeepStruct bug
               repost[:external_document][:tootsie][:status] = "ok"
               message["outputs"].each { |output| 
                 suffix = File.basename(output["url"]).chomp(File.extname(output["url"]))
@@ -72,8 +72,10 @@ module EndeavorImageIntegrator
                 }
               }
               result = @grove.post("/posts/post.listing:#{message["reference"]["grovepath"]}", {post: repost})
-              @q.ack(:delivery_tag => delivery_info[:delivery_details][:delivery_tag])
             end
+            @q.ack(:delivery_tag => delivery_info[:delivery_details][:delivery_tag])
+          else
+            sleep(5)
           end
         end
       rescue Pebblebed::HttpError => e

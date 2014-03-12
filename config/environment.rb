@@ -1,20 +1,20 @@
 load(File.expand_path('../site.rb', __FILE__)) if File.exist?(File.expand_path('../site.rb', __FILE__))
 
-ENV['RACK_ENV'] ||= 'development'
-ENVIRONMENT = ENV['RACK_ENV'].to_sym
-
+environment = ENV['RACK_ENV'] ||= 'development'
+ 
 require 'rubygems'
 require 'bundler'
+Bundler.require(:default, environment.to_sym)
+
 require 'logger'
 require 'json'
 require 'nokogiri'
 require 'pp'
 require 'pebblebed'
 require 'active_support/core_ext'
-Bundler.require(:default, ENVIRONMENT)
 
 Pebblebed.config do
-  host 'homesdotcom.dev'
+  host 'local.dev' if environment == 'development'
   service :checkpoint
   service :grove
 end
