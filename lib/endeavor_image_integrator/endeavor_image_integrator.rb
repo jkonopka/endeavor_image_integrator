@@ -16,7 +16,7 @@ module EndeavorImageIntegrator
 
       @river = Pebblebed::River.new()
       @river.connect
-      @q = @river.queue({:name => options[:queue], :event => "tootsie_done"})
+      @q = @river.queue({:name => options[:queue], :event => "tootsie_completed"})
 
       process_event unless options[:all]
       if(options[:all])
