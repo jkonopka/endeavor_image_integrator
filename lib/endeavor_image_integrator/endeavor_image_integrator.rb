@@ -52,8 +52,7 @@ module EndeavorImageIntegrator
       begin
         @q.pop({:ack => true, :auto_ack => false}) do |delivery_info|
           if delivery_info[:payload] != :queue_empty
-            payload = JSON.parse(delivery_info[:payload])
-            message = JSON.parse(payload["data"]["message"])
+            message = JSON.parse(delivery_info[:payload])
             if message["reference"]
               listing = @grove.get("/posts/post.listing:#{message["reference"]["grovepath"]}", { external_id: "#{message["reference"]["external_id"]}", unpublished: "include"})
               repost = {
