@@ -53,27 +53,41 @@ module EndeavorImageIntegrator
         @q.pop({:ack => true, :auto_ack => false}) do |delivery_info|
           if delivery_info[:payload] != :queue_empty
             message = JSON.parse(delivery_info[:payload])
-            if message["reference"]
-              listing = @grove.get("/posts/post.listing:#{message["reference"]["grovepath"]}", { external_id: "#{message["reference"]["external_id"]}", unpublished: "include"})
+            if (reference = message["reference"])
+              begin
+                if reference['uid']
+                  listing = @grove.get("/posts/#{reference['uid']}", unpublished: 'include')
+                else
+                  listing = @grove.get("/posts/#{reference['grovepath']}",
+                    unpublished: 'include',
+                    external_id: "#{reference['external_id']}", unpublished: "include")
+                end
+              rescue Pebblebed::HttpNotFoundError
+                LOGGER.error "Listing not found: #{reference.inspect}"
+              else
+                uid = listing[:post][:uid]
+                LOGGER.info "Updating listing #{uid}"
 
-              repost = DeepStruct.wrap(
-                :external_id => listing[:post][:external_id],
-                :external_document => listing[:post][:document],
-                :tags => listing[:post][:tags].to_a)
-              repost[:tags] -= ["needs_tootsie"]
-              repost[:external_document][:tootsie].symbolize_keys!
-              repost[:external_document][:tootsie][:status] = "ok"
-              message["outputs"].each { |output| 
-                suffix = File.basename(output["url"]).chomp(File.extname(output["url"]))
-                repost[:external_document][:tootsie][:primary_photo][suffix] = {
-                  :url => output["url"],
-                  :width => output["width"],
-                  :height => output["height"]
+                repost = DeepStruct.wrap(listing[:post])
+                repost[:tags] = repost[:tags].to_a - ["needs_tootsie"]
+                repost[:document][:tootsie] ||= {}
+                repost[:document][:tootsie][:status] = "ok"
+                message["outputs"].each { |output|
+                  suffix = File.basename(output["url"]).chomp(File.extname(output["url"]))
+                  repost[:document][:tootsie][:primary_photo][suffix] = {
+                    :url => output["url"],
+                    :width => output["width"],
+                    :height => output["height"]
+                  }
                 }
-              }
-              repost = repost.unwrap  # Work around DeepStruct problem
 
-              result = @grove.post("/posts/post.listing:#{message["reference"]["grovepath"]}", {post: repost})
+                repost = repost.unwrap  # Work around DeepStruct problem
+                result = @grove.post("/posts/#{uid}", {post: repost})
+
+                LOGGER.info "Updated listing #{uid}"
+              end
+            else
+              LOGGER.info "Ignoring message: #{message.inspect}"
             end
             @q.ack(:delivery_tag => delivery_info[:delivery_details][:delivery_tag])
           else
