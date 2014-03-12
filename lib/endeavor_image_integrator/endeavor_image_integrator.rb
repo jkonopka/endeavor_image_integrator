@@ -61,6 +61,7 @@ module EndeavorImageIntegrator
                 :tags => listing[:post][:tags].to_a
               }
               repost[:tags] -= ["needs_tootsie"]
+              repost[:external_document] = repost[:external_document].unwrap  # Work around DeepStruct bug
               repost[:external_document][:tootsie][:status] = "ok"
               message["outputs"].each { |output| 
                 suffix = File.basename(output["url"]).chomp(File.extname(output["url"]))
