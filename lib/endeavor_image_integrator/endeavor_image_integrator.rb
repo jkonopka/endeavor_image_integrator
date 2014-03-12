@@ -7,11 +7,11 @@ module EndeavorImageIntegrator
       options.merge! default_options
       options.merge! load_config_file
 
-      min_keys = %w(grovekey)
-      stop "missing grovekey - can't start" unless min_keys.map { |i| options.has_key? i.to_sym }.all?
+      min_keys = %w(session_key)
+      stop "missing session_key - can't start" unless min_keys.map { |i| options.has_key? i.to_sym }.all?
       @options = options
 
-      @pebblebed = ::Pebblebed::Connector.new(options[:grovekey], {})
+      @pebblebed = ::Pebblebed::Connector.new(options[:session_key], {})
       @grove = @pebblebed.grove
 
       @river = Pebblebed::River.new()

@@ -1,5 +1,5 @@
 # Grove session key
-:grovekey: stuff
+:session_key: stuff
 
 # Optional, defaults to tootsie_completion
 :queue: tootsie_completion
