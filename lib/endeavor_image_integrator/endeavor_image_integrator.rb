@@ -55,14 +55,13 @@ module EndeavorImageIntegrator
             message = JSON.parse(delivery_info[:payload])
             if message["reference"]
               listing = @grove.get("/posts/post.listing:#{message["reference"]["grovepath"]}", { external_id: "#{message["reference"]["external_id"]}", unpublished: "include"})
-              repost = {
+
+              repost = DeepStruct.wrap(
                 :external_id => listing[:post][:external_id],
                 :external_document => listing[:post][:document],
-                :tags => listing[:post][:tags].to_a
-              }
+                :tags => listing[:post][:tags].to_a)
               repost[:tags] -= ["needs_tootsie"]
-              repost[:external_document] = repost[:external_document].unwrap  # Work around DeepStruct bug
-              repost[:external_document].symbolize_keys!
+              repost[:external_document][:tootsie].symbolize_keys!
               repost[:external_document][:tootsie][:status] = "ok"
               message["outputs"].each { |output| 
                 suffix = File.basename(output["url"]).chomp(File.extname(output["url"]))
@@ -72,6 +71,8 @@ module EndeavorImageIntegrator
                   :height => output["height"]
                 }
               }
+              repost = repost.unwrap  # Work around DeepStruct problem
+
               result = @grove.post("/posts/post.listing:#{message["reference"]["grovepath"]}", {post: repost})
             end
             @q.ack(:delivery_tag => delivery_info[:delivery_details][:delivery_tag])
