@@ -14,7 +14,7 @@ require 'pebblebed'
 require 'active_support/core_ext'
 
 Pebblebed.config do
-  host 'homesdotcom.dev'
+  host 'local.dev' if environment == 'development'
   service :checkpoint
   service :grove
 end
